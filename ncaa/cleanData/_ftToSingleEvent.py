@@ -1,11 +1,12 @@
 import pandas as pd
 import sqlite3 as sql
+#from ncaa.cleanData import ftEventNames
+ftEventNames = ('made1_free', 'miss1_free')
 
-ftCodes = ('made1_free', 'miss1_free')
 
 def _prepare(df):
     df = df[['EventType', 'ElapsedSeconds']]
-    df = df[df['EventType'].isin(ftCodes)]
+    df = df[df['EventType'].isin(ftEventNames)]
     
     temp = df.shift(1)
     temp = temp.join(df, lsuffix='_prev')
@@ -70,7 +71,7 @@ def singularFT(df):
     
     original['ftCode'] = finalDF    
     
-    toRemove = original[original['EventType'].isin(ftCodes)]
+    toRemove = original[original['EventType'].isin(ftEventNames)]
     toRemove = toRemove[~toRemove.index.isin(finalDF.index)]    
     
     original = original[~original.index.isin(toRemove.index)]    
@@ -89,7 +90,7 @@ if __name__ == '__main__':
                         1000
                      """, conn, index_col='EventID')
     result = singularFT(data)
-    #result = result[result['EventType'].isin(ftCodes)]
+    #result = result[result['EventType'].isin(ftEventNames)]
     print(result)
     
     

@@ -27,10 +27,6 @@ def do_assists(df):
     return df
 
 if __name__ == '__main__':
-
-
-    
-    
     df = pd.read_sql("""
                     SELECT
                         *

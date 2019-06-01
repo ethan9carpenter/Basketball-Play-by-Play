@@ -56,6 +56,7 @@ def _getBySeq(oneFT, twoFT, threeFT):
     
     for i, data in enumerate(seqs):
         data['ftCode'] = i
+        print(i, data.__name__)
     
     return seqs
 

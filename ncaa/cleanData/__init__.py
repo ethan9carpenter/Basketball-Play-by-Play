@@ -8,10 +8,14 @@ ftCodes = {0: (0, 1),
            3: (0, 1),
            4: (0, 1)}
 
-def cleanData(df):
+def cleanData(df, reindex=False):
     df = initial_trim(df)
     df = do_assists(df)
     df = singularFT(df)
     df = doAndOnes(df)
+    df.drop('index', axis=1, inplace=True)
+    
+    if reindex:
+        df = df.reset_index()
     
     return df

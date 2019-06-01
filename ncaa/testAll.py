@@ -9,10 +9,12 @@ df = pd.read_sql("""
                     From
                         "2017-2018"
                     Limit
-                        1000000
+                        10000000
                      """, conn, index_col='EventID')
 
-df = cleanData(df)
+df = cleanData(df, reindex=True)
+df.to_sql('test', conn, if_exists='replace')
+
 df = df[df.columns[9:]]
-df = df[df['ftCode'].isin([0, 1])]
+df = df[df['EventType'].isin(['made2_jump_and8', 'made3_jump_and8', 'made2_tip_and8', 'made2_lay_and8'])]
 print(df)

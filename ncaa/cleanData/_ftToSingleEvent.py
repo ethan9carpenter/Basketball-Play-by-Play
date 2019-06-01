@@ -3,7 +3,6 @@ import sqlite3 as sql
 #from ncaa.cleanData import ftEventNames
 ftEventNames = ('made1_free', 'miss1_free')
 
-
 def _prepare(df):
     df = df[['EventType', 'ElapsedSeconds']]
     df = df[df['EventType'].isin(ftEventNames)]
@@ -53,10 +52,12 @@ def _getBySeq(oneFT, twoFT, threeFT):
     
     seqs = [_0_1, _1_1, _0_2, _1_2, _2_2,   
             _0_3, _1_3, _2_3, _3_3]
+    names = ['_0_1', '_1_1', '_0_2', '_1_2', '_2_2',   
+             '_0_3', '_1_3', '_2_3', '_3_3']
     
     for i, data in enumerate(seqs):
         data['ftCode'] = i
-        print(i, data.__name__)
+        data['EventType'] = 'ft' + names[i]
     
     return seqs
 
@@ -67,15 +68,27 @@ def singularFT(df):
     oneFT, twoFT, threeFT = _getByLen(df)
     seqs = _getBySeq(oneFT, twoFT, threeFT)
     
-    finalDF = pd.concat(seqs)    
-    finalDF = finalDF['ftCode']    
+    finalDF = pd.concat(seqs)
+    fts = original[original['EventType'].isin(ftEventNames)]
+    fts['ftCode'] = finalDF['ftCode']
+    fts['EventType'] = finalDF['EventType']
     
-    original['ftCode'] = finalDF    
     
+    cols = list(original.columns)
+    cols.append('ftCode')
+    fts = fts[cols]
+    fts = fts[fts.index.isin(finalDF.index)]
+    
+    #original['ftCode'] = finalDF['ftCode']
+    """
     toRemove = original[original['EventType'].isin(ftEventNames)]
     toRemove = toRemove[~toRemove.index.isin(finalDF.index)]    
     
-    original = original[~original.index.isin(toRemove.index)]    
+    original = original[~original.index.isin(toRemove.index)]
+    
+    """
+    original = original[~original['EventType'].isin(ftEventNames)]
+    original = original.append(fts)
     
     return original
 

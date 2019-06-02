@@ -2,7 +2,7 @@
 *Untitled*
 *.csv
 *.db
-*.ipynb_checkpoints
+#*.ipynb_checkpoints
 .settings
 .project
 .pydevproject

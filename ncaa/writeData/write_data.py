@@ -1,21 +1,20 @@
-import sqlite3 as sql
 import pandas as pd
 from ncaa.cleanData import cleanData
 
-conn = sql.connect("ncaa_pbp.db")
 
-for year in range (2014, 2019+1):
+def write_off_poss(conn, yearEnd, tableName=None, reindex=False):
     df = pd.read_sql("""
                         SELECT
                             *
                         From
                             "{}-{}"
-                         """.format(year-1, year), conn, index_col='EventID')
+                         """.format(yearEnd-1, yearEnd), conn, index_col='EventID')
     
-    df = cleanData(df, reindex=False)
+    df = cleanData(df, reindex=reindex)
     df = df[~df['EventType'].isin(['made2_jump_and8', 'made3_jump_and8', 'made2_tip_and8', 'made2_lay_and8'])]
-    df.to_sql('poss_{}'.format(year), conn)
-    print(year)
+    
+    if tableName is None:
+        df.to_sql('poss_{}'.format(yearEnd), conn)
 
 
 #FIX THE and8 issue

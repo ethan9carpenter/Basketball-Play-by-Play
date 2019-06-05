@@ -1,0 +1,6 @@
+-Change back EventType to original and then add a column for ftType for and-1s
+-Then use groupby to further breakdown by assists
+
+-Add gameID
+
+-Figure out a way to assign point values for ft when using 'ft' as a EventType

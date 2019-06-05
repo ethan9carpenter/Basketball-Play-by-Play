@@ -58,6 +58,8 @@ def _getBySeq(oneFT, twoFT, threeFT):
     for i, data in enumerate(seqs):
         data['ftCode'] = names[i] #i
         data['EventType'] = 'ft_' + names[i]
+        data['madeFT'] = str(names[i][0])
+        data['attFT'] = str(names[i][-1])
     
     return seqs
 
@@ -72,17 +74,21 @@ def singularFT(df):
     fts = original[original['EventType'].isin(ftEventNames)]
     fts['ftCode'] = finalDF['ftCode']
     fts['EventType'] = finalDF['EventType']
+    fts['madeFT'] = finalDF['madeFT']
+    fts['attFT'] = finalDF['attFT']
     
     
     cols = list(original.columns)
-    cols.append('ftCode')
+    cols = cols + ['ftCode', 'madeFT', 'attFT']
     fts = fts[cols]
     fts = fts[fts.index.isin(finalDF.index)]
     
     #original['ftCode'] = finalDF['ftCode']
 
     original = original[~original['EventType'].isin(ftEventNames)]
-    original['ftCode'] = -1
+    original['ftCode'] = 0
+    original['madeFT'] = 0
+    original['attFT'] = 0
     original = original.append(fts)
     
     return original

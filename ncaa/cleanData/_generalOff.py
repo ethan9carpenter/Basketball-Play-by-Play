@@ -1,6 +1,6 @@
 
 def do_assists(df):
-    df['previous'] = df['EventType'].shift(1)
+    df['previous'] = df['EventType'].shift(-1)
     df['isAssisted'] = df['previous'] == 'assist'
     
     df.drop('previous', axis=1, inplace=True)

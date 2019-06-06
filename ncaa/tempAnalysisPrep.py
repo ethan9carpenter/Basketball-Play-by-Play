@@ -142,7 +142,7 @@ if __name__ == '__main__':
 
     conn = sql.connect("ncaa_pbp.db")
     year = 2018
-    grouping=['EventType', 'madeFT', 'attFT']
+    grouping=['EventType', 'madeFT', 'attFT', 'isAssisted']
     
     df = load_data(year, conn, limit=1000)
 

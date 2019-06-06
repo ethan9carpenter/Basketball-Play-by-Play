@@ -6,89 +6,84 @@ ftEventNames = ('made1_free', 'miss1_free')
 def _prepare(df):
     df = df[['EventType', 'ElapsedSeconds']]
     df = df[df['EventType'].isin(ftEventNames)]
-    
+
     temp = df.shift(1)
-    temp = temp.join(df, lsuffix='_prev')
-    temp = temp.join(df.shift(-1), rsuffix='_2')
-    temp = temp.join(df.shift(-2), rsuffix='_3')
-    df = temp
-
-    df = df[(df['ElapsedSeconds_prev'] != df['ElapsedSeconds'])]
-
-    df.drop(['ElapsedSeconds_prev', 'EventType_prev'], axis=1, inplace=True)
+    temp = temp.join(df, lsuffix='_-1')
+    temp = temp.join(df.shift(-1), rsuffix='_1')
+    temp = temp.join(df.shift(-2), rsuffix='_2')
     
-    df['EventType'] = df['EventType'] == 'made1_free'
-    df['EventType_2'] = df['EventType_2'] == 'made1_free'
-    df['EventType_3'] = df['EventType_3'] == 'made1_free'
+    df = temp
+    df = df[(df['ElapsedSeconds_-1'] != df['ElapsedSeconds'])]
+
+    df.drop(['ElapsedSeconds_-1', 'EventType_-1'], axis=1, inplace=True)
+    
+    for col in ('EventType', 'EventType_1', 'EventType_2'):
+        df[col] = df[col] == 'made1_free'
     
     return df
 
 def _getByLen(df):
-    oneFT = df[(df['ElapsedSeconds'] != df['ElapsedSeconds_2']) &
-               (df['ElapsedSeconds'] != df['ElapsedSeconds_3'])]
-    twoFT = df[(df['ElapsedSeconds'] == df['ElapsedSeconds_2']) &
-               (df['ElapsedSeconds'] != df['ElapsedSeconds_3'])]
-    threeFT = df[(df['ElapsedSeconds'] == df['ElapsedSeconds_2']) &
-               (df['ElapsedSeconds'] == df['ElapsedSeconds_3'])]
-
+    oneBoo = df['ElapsedSeconds'] == df['ElapsedSeconds_1']
+    twoBoo = df['ElapsedSeconds'] == df['ElapsedSeconds_2']
+    threeBoo = df['ElapsedSeconds'] == df['ElapsedSeconds_2']
+    
+    oneFT = df[oneBoo & ~twoBoo]
+    twoFT = df[twoBoo & ~threeBoo]
+    threeFT = df[threeBoo]
+    
     oneFT = oneFT[['ElapsedSeconds', 'EventType']]
-    twoFT = twoFT[['ElapsedSeconds', 'EventType', 'ElapsedSeconds_2', 'EventType_2']]
-    threeFT = threeFT[['ElapsedSeconds', 'EventType', 'ElapsedSeconds_2', 'EventType_2', 
-                     'ElapsedSeconds_3', 'EventType_3']]
+    twoFT = twoFT[['ElapsedSeconds', 'EventType', 'ElapsedSeconds_1', 'EventType_1']]
+    threeFT = threeFT[['ElapsedSeconds', 'EventType', 'ElapsedSeconds_1', 'EventType_1', 
+                     'ElapsedSeconds_2', 'EventType_2']]
     
     return oneFT, twoFT, threeFT
 
+
+def _get_ind_seq(df, num):
+    df['numMade'] = df['EventType'].astype(int)
+    for i in range(1, num):
+        df['numMade'] += df['EventType_'+str(i)].astype(int)
+    
+    groups = [df[df['numMade'] == i] for i in range(num+1)]
+    names = [str(i) + '_' + str(num) for i in range(num+1)]
+
+    return dict(zip(names, groups))
+
 def _getBySeq(oneFT, twoFT, threeFT):
-    # name is _made_attempts
-    _1_2 = twoFT[(~twoFT['EventType']) & (twoFT['EventType_2'])]
-    _2_2 = twoFT[(twoFT['EventType']) & (twoFT['EventType_2'])]
-    _0_2 = twoFT[(~twoFT['EventType']) & (~twoFT['EventType_2'])]
-    _0_1 = oneFT[~oneFT['EventType']]
-    _1_1 = oneFT[oneFT['EventType']]
-    _0_3 = threeFT[(~threeFT['EventType']) & (~threeFT['EventType_2']) & (~threeFT['EventType_3'])]
-    _1_3 = threeFT[(~threeFT['EventType']) & (~threeFT['EventType_2']) & (threeFT['EventType_3'])]
-    _2_3 = threeFT[(~threeFT['EventType']) & (threeFT['EventType_2']) & (threeFT['EventType_3'])]
-    _3_3 = threeFT[(threeFT['EventType']) & (threeFT['EventType_2']) & (threeFT['EventType_3'])]
+    seqs = {}
     
-    seqs = [_0_1, _1_1, _0_2, _1_2, _2_2,   
-            _0_3, _1_3, _2_3, _3_3]
-    names = ['0_1', '1_1', '0_2', '1_2', '2_2',   
-             '0_3', '1_3', '2_3', '3_3']
-    
-    for i, data in enumerate(seqs):
-        data['ftCode'] = names[i] #i
-        data['EventType'] = 'ft_' + names[i]
-        data['madeFT'] = str(names[i][0])
-        data['attFT'] = str(names[i][-1])
-    
-    return seqs
+    for i, df in enumerate([oneFT, twoFT, threeFT]):
+        seqs.update(_get_ind_seq(df, i+1))
+
+    for name in seqs:
+        data = seqs[name]
+        data['ftCode'] = name
+        data['EventType'] = 'ft_' + name
+        data['madeFT'] = str(name[0])
+        data['attFT'] = str(name[-1])
+
+    return pd.concat(seqs.values())
 
 def singularFT(df):
     original = df.copy()
     df = _prepare(df)
     
     oneFT, twoFT, threeFT = _getByLen(df)
-    seqs = _getBySeq(oneFT, twoFT, threeFT)
     
-    finalDF = pd.concat(seqs)
+    finalDF = _getBySeq(oneFT, twoFT, threeFT)
     fts = original[original['EventType'].isin(ftEventNames)]
-    fts['ftCode'] = finalDF['ftCode']
-    fts['EventType'] = finalDF['EventType']
-    fts['madeFT'] = finalDF['madeFT']
-    fts['attFT'] = finalDF['attFT']
+   
+    fts.drop('EventType', inplace=True, axis=1)
+    fts = fts.join(finalDF[['ftCode', 'EventType', 'madeFT', 'attFT']])
     
-    
-    cols = list(original.columns)
-    cols = cols + ['ftCode', 'madeFT', 'attFT']
+    cols = list(original.columns) + ['ftCode', 'madeFT', 'attFT']
     fts = fts[cols]
     fts = fts[fts.index.isin(finalDF.index)]
     
-    #original['ftCode'] = finalDF['ftCode']
-
     original = original[~original['EventType'].isin(ftEventNames)]
-    original['ftCode'] = 0
-    original['madeFT'] = 0
-    original['attFT'] = 0
+    for col in ('ftCode', 'madeFT', 'attFT'):
+        original[col] = 0
+
     original = original.append(fts)
     
     return original

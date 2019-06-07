@@ -1,6 +1,6 @@
 import pandas as pd
 import sqlite3 as sql
-#from ncaa.cleanData import ftEventNames
+
 ftEventNames = ('made1_free', 'miss1_free')
 
 def _prepare(df):
@@ -57,10 +57,9 @@ def _getBySeq(oneFT, twoFT, threeFT):
 
     for name in seqs:
         data = seqs[name]
-        data['ftCode'] = name
-        data['EventType'] = 'ft_' + name
-        data['madeFT'] = str(name[0])
-        data['attFT'] = str(name[-1])
+        data['EventType'] = 'ft'
+        data['madeFT'] = int(name[0])
+        data['attFT'] = int(name[-1])
 
     return pd.concat(seqs.values())
 
@@ -74,18 +73,18 @@ def singularFT(df):
     fts = original[original['EventType'].isin(ftEventNames)]
    
     fts.drop('EventType', inplace=True, axis=1)
-    fts = fts.join(finalDF[['ftCode', 'EventType', 'madeFT', 'attFT']])
+    fts = fts.join(finalDF[['EventType', 'madeFT', 'attFT']])
     
-    cols = list(original.columns) + ['ftCode', 'madeFT', 'attFT']
+    cols = list(original.columns) + ['madeFT', 'attFT']
     fts = fts[cols]
     fts = fts[fts.index.isin(finalDF.index)]
     
     original = original[~original['EventType'].isin(ftEventNames)]
-    for col in ('ftCode', 'madeFT', 'attFT'):
+    for col in ('madeFT', 'attFT'):
         original[col] = 0
 
     original = original.append(fts)
-    
+
     return original
 
 

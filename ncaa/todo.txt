@@ -1,6 +1,11 @@
 -Change back EventType to original and then add a column for ftType for and-1s
 -Then use groupby to further breakdown by assists
 
--Add gameID
-
 -Figure out a way to assign point values for ft when using 'ft' as a EventType
+
+#FIX THE and8 issue
+#might have a problem somehwer when sorting by team, could lose chronological order, make sure that it stays in order
+
+-improve/fix _andOnes
+
+-expand analysis so that you can see next opponent play or EventPLayer_sbsq (i.e. Curry 3-->Durant dunk)

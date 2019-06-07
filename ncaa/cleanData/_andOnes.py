@@ -7,6 +7,8 @@ warnings.filterwarnings('ignore')
 
 def _trimToAndOnePlays(df):
     toKeep = df[df['ftCode'] >= 0]['ElapsedSeconds']
+    #    toKeep = df[df['attFT'] == 1]['ElapsedSeconds']
+
     df = df[df['ElapsedSeconds'].isin(toKeep)]
 
     df = df[(df['LPoints'] > 0) |

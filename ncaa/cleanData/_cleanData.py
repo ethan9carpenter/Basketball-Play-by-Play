@@ -1,6 +1,5 @@
-import pandas as pd
 import warnings
-#warnings.filterwarnings('ignore')
+warnings.filterwarnings('ignore')
 
 def doAndOnes(df):
     """
@@ -27,15 +26,16 @@ def doAndOnes(df):
     df.set_index('EventID', inplace=True)
 
     return df
-    
-    
-if __name__ == '__main__':
-    from ncaa.cleanData._ftToSingleEvent import singularFT
-    import sqlite3 as sql
 
 
-    df = pd.read_sql("""
-                     SELECT * FROM "2017-2018" LIMIT 1000
-                     """, sql.connect('ncaa_pbp.db'), index_col='EventID')
-    df = singularFT(df)
-    print(doAndOnes(df))
+def do_assists(df):
+    #shifting 1 instead of -1 because of how assists appear in pbp data
+    '''
+    df['isAssisted'] = df['EventType'].shift(1) == 'assist'
+        
+    df['assistPlayerID'] = df['EventPlayerID'].shift(1) 
+    df['assistPlayerID'] = df[df['isAssisted']]['assistPlayerID']
+    '''
+    df = df[df['EventType'] != 'assist']
+    
+    return df

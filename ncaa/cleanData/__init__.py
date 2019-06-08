@@ -1,10 +1,9 @@
 from ncaa.cleanData._ftToSingleEvent import singularFT
-from ncaa.cleanData._andOnes import doAndOnes
-from ncaa.cleanData._generalOff import do_assists
+from ncaa.cleanData.cleanData import doAndOnes, do_assists
 
 
 def cleanData(df):
-    
+    #doAndOnes(df)
     df = do_assists(df)
     
     df = singularFT(df)

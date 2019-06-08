@@ -15,15 +15,16 @@ def doAndOnes(df):
     
     fts = fts[['madeFT', 'attFT']]
     
-    
     df = df.join(fts, rsuffix='_')
-    df['madeFT'] += df['madeFT_']
-    df['attFT'] += df['attFT_']
-    
-    df.drop(['attFT_', 'madeFT_'], inplace=True, axis=1)
-    
     df.reset_index(inplace=True)
     df.set_index('EventID', inplace=True)
+    
+    df = df.fillna(value={'madeFT_': 0, 'attFT_': 0})
+
+    df['madeFT'] += df['madeFT_']
+    df['attFT'] += df['attFT_']
+
+    df.drop(['attFT_', 'madeFT_'], inplace=True, axis=1)    
 
     return df
 

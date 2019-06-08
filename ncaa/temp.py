@@ -10,16 +10,15 @@ if __name__ == '__main__':
     year = 2010
     grouping=['PlayerName']
     
-    df = load_data(year, conn, limit=28, toAdd=['name', 'team', 'gameID'])
-    df = df.iloc[-2:]
-    df.to_csv('temp.csv')
+    df = load_data(year, conn, limit=None, toAdd=['name', 'team', 'gameID'])
     df = cleanData(df)
-    df.to_csv('temp1.csv')
     df = analysis.prep(df)
-
+    df = df[df['PlayerName'] != 'Team']
     df = apply_grouping(df, grouping)
+    df = df[df['Count'] > 500]
     
     df.sort_values('Count', inplace=True, ascending=False)
+    
     print(df)
     import matplotlib.pyplot as plt
     plt.scatter(df['Count'], df['AveragePoints'])

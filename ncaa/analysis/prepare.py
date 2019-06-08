@@ -1,6 +1,4 @@
-import pandas as pd
 import json
-from ncaa.analysis.analyze import DataToAnalyze
 
 pointVals = json.load(open('pointVals.json'))
 
@@ -10,32 +8,30 @@ def _applyPointValues(df):
     
     return df
 
-
-
-def _getProperColsAndSbsq(df):
-    
+def _getProperColsAndSbsq(df, how):
     df.reset_index(inplace=True)
-    df.sort_values(['EventTeamID', 'EventID'], inplace=True)
     
-    df = df.join(df.shift(-1), rsuffix='_sbsq')
+    if how == 'o':
+        df.sort_values(['EventTeamID', 'EventID'], inplace=True)
+        
+        df = df.join(df.shift(-1), rsuffix='_sbsq')
     
-
-    df = df[(df['EventTeamID'] == df['EventTeamID_sbsq']) &
-            (df['GameID'] == df['GameID_sbsq'])]
-
+        df = df[(df['EventTeamID'] == df['EventTeamID_sbsq']) &
+                (df['GameID'] == df['GameID_sbsq'])]
+    
     return df
 
-def prep(df, conn):
+def prep(df, how='o'):
     """
     Preconditions
     :    Already in possession format via ncaa.cleanData.cleanData
     """
-    
     df = _applyPointValues(df)
-    df = _getProperColsAndSbsq(df)
-    
+    df = _getProperColsAndSbsq(df, how=how)
+    df.set_index('EventID', inplace=True)
+    df.sort_index(inplace=True)
 
-    return DataToAnalyze(df)
+    return df
     
 
 

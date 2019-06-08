@@ -23,7 +23,7 @@ def _prepare(df):
     return df
 
 def _getByLen(df):
-    oneBoo = df['ElapsedSeconds'] == df['ElapsedSeconds_1']
+    oneBoo = df['ElapsedSeconds'] != df['ElapsedSeconds_1']
     twoBoo = df['ElapsedSeconds'] == df['ElapsedSeconds_2']
     threeBoo = df['ElapsedSeconds'] == df['ElapsedSeconds_2']
     
@@ -61,14 +61,14 @@ def _getBySeq(oneFT, twoFT, threeFT):
         data['madeFT'] = int(name[0])
         data['attFT'] = int(name[-1])
 
-    return pd.concat(seqs.values())
+    return pd.concat(seqs.values(), sort=False)
 
 def singularFT(df):
     original = df.copy()
     df = _prepare(df)
     
     oneFT, twoFT, threeFT = _getByLen(df)
-    
+
     finalDF = _getBySeq(oneFT, twoFT, threeFT)
     fts = original[original['EventType'].isin(ftEventNames)]
    

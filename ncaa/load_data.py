@@ -52,8 +52,7 @@ def load_data(year, conn, limit='', toAdd=[]):
                     From
                         {tableName}
                     WHERE
-                        EventType NOT LIKE "%8"
-                        AND EventType IN 
+                        EventType IN 
                             (SELECT EventType FROM events WHERE isOffense = 1)
                     {lim}
                      """.format(tableName=tableName, lim=limit), conn)
@@ -64,3 +63,33 @@ def load_data(year, conn, limit='', toAdd=[]):
     df.drop('index', axis=1, inplace=True)
 
     return df
+
+def better_load_with_args(where):
+    args = {'Season': (2011, 2012),
+       'PlayerName': ('BAILEY_JAMIL', 'BLAKE_CHRIS')}
+    args = [key+' IN ' +str(args[key]) for key in args]
+    where = ' AND '.join(args)
+
+    que = """
+    Select
+        PlayerName 
+    from
+        players
+    WHERE
+        {where}
+    
+    
+    
+    """.format(where=where)
+    print(que)
+    #df = pd.read_sql(que, conn)
+    #return df
+
+if __name__ == '__main__':
+    pass
+    
+    
+    
+    
+    
+    

@@ -24,6 +24,7 @@ def _add_names(df, conn):
 
     names['PlayerName'] = names['PlayerName'].apply(_tidy_name)
     df = pd.merge(df, names, how='left', left_on='EventPlayerID', right_on='PlayerID')
+    df.drop('PlayerID', axis=1, inplace=True)
     
     return df
 
@@ -62,6 +63,16 @@ def load_data(year, conn, limit='', toAdd=[]):
     df.set_index('EventID', inplace=True)
     df.drop('index', axis=1, inplace=True)
 
+    return df
+
+def load_clean(year, conn, limit=''):
+    if isinstance(limit, int):
+        limit = 'LIMIT ' + str(limit)
+    else:
+        limit = ''
+    
+    df = pd.read_sql("""SELECT * FROM poss_{year} {limit}""".format(year=year, limit=limit), 
+                     conn, index_col='EventID')
     return df
 
 def better_load_with_args(where):

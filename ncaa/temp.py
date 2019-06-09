@@ -10,8 +10,10 @@ if __name__ == '__main__':
     year = 2010
     grouping=['PlayerName']
     
-    df = load_data(year, conn, limit=None, toAdd=['name', 'team', 'gameID'])
+    df = load_data(year, conn, limit=40, toAdd=['name', 'team', 'gameID'])
+    
     df = cleanData(df)
+    
     df = analysis.prep(df)
     df = df[df['PlayerName'] != 'Team']
     df = apply_grouping(df, grouping)

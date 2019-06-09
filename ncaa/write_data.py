@@ -1,22 +1,19 @@
-import pandas as pd
 from ncaa.cleanData import cleanData
+from ncaa.load_data import load_data
 
 
-def write_off_poss(conn, yearEnd, newTableName=None, reindex=False):
-    df = pd.read_sql("""
-                        SELECT
-                            *
-                        From
-                            "{}-{}"
-                         """.format(yearEnd-1, yearEnd), conn, index_col='EventID')
-    
+def write_clean_off_poss(conn, yearEnd, newTableName=None, reindex=False, if_exists='fail'):
+    df = load_data(yearEnd, conn, toAdd=['name', 'gameID', 'team'])
     df = cleanData(df, reindex=reindex)
-    #df = df[~df['EventType'].isin(['made2_jump_and8', 'made3_jump_and8', 'made2_tip_and8', 'made2_lay_and8'])]
     
     if newTableName is None:
-        df.to_sql('poss_{}'.format(yearEnd), conn)
+        newTableName = 'poss_{}'.format(yearEnd)
+        
+    df.to_sql(newTableName, conn, if_exists=if_exists)
+    
+    return df
 
 
 if __name__ == '__main__':
     import sqlite3
-    write_off_poss(sqlite3.connect('ncaa_pbp.db'), 2011)
+    write_clean_off_poss(sqlite3.connect('ncaa_pbp.db'), 2010, if_exists='replace')

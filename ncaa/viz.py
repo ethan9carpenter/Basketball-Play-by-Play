@@ -7,25 +7,26 @@ from ncaa import analysis
 from ncaa.load_data import load_clean
 from ncaa.analysis.analyze import apply_grouping
 import pandas as pd
-
 import sqlite3 as sql
+
 conn = sql.connect("ncaa_pbp.db")
-df = load_clean(2019, conn, limit='')
+df = load_clean(2012, conn, limit='')
 df = analysis.prep(df)
 df = df[df['PlayerName'] != 'Team']
 
 origDF = df.copy()
 
+
+teamAvg = apply_grouping(df, ['TeamID'])['AveragePoints']
+
+groupedDF = apply_grouping(df, ['EventPlayerID', 'TeamID'])
+#groupedDF['AveragePoints'] -= teams
+
+teamNames = sorted(list(set(origDF['TeamName'])))
+
 playerNames = df[['PlayerName', 'EventPlayerID', 'TeamID', 'TeamName']]
-playerNames = playerNames.set_index('PlayerName')
-teams = apply_grouping(df, ['TeamID'])['AveragePoints']
-
-groupedDF = apply_grouping(df, ['PlayerName', 'TeamID'])
-groupedDF['AveragePoints'] -= teams
-
-teamNames = sorted(list(set(playerNames['TeamName'])))
-playerNames = sorted(list(set(playerNames.index)))
-
+playerNames.drop_duplicates(inplace=True)
+playerNames.sort_values('PlayerName', inplace=True)
 
 app = dash.Dash('NCAA Play-by-Play')
 
@@ -34,16 +35,19 @@ app.layout = html.Div([
         html.Div([
             dcc.Dropdown(
                 id='player-filter',
-                options=[{'label': i, 'value': i} for i in playerNames],
-                value=playerNames[0],
+                options=[{'label': name+' ({})'.format(team), 
+                          'value': id_} for name, team, id_ in zip(playerNames['PlayerName'],
+                                                                   playerNames['TeamName'],
+                                                                   playerNames['EventPlayerID'])],
+                value=[],
                 multi=True,
                 style={'font-size': 20}
             ),
             dcc.RadioItems(
                 id='isRelative',
-                options=[{'label': 'Relative to Team', 'value': 'relative'},
-                         {'label': 'Total', 'value': 'total'}],
-                value='False',
+                options=[{'label': 'Relative to Team', 'value': 'yes'},
+                         {'label': 'Total', 'value': 'no'}],
+                value='yes',
             )
         ],
         style={'display': 'inline-block', 'width': '50%', 'float': '50%'}),
@@ -51,7 +55,7 @@ app.layout = html.Div([
             dcc.Dropdown(
                 id='team-filter',
                 options=[{'label': i, 'value': i} for i in teamNames],
-                value='',
+                value=[],
                 multi=True,
                 style={'font-size': 20}
             ),
@@ -66,6 +70,19 @@ app.layout = html.Div([
 ])
 
 
+def getEmptyChart():
+    return {'layout': go.Layout(
+                title={'text': 'Average Points on Play after Player ends Possession'},
+                xaxis={'title': 'Count'},
+                yaxis={'title': 'Points per Possession'},
+                hovermode='closest',
+                height=600
+                )
+            }
+
+def get_player_name(id_):
+    return playerNames[playerNames['EventPlayerID'] == id_]['PlayerName'].values[0]
+
 @app.callback(
     dash.dependencies.Output('graph', 'figure'),
     [dash.dependencies.Input('player-filter', 'value'), 
@@ -73,20 +90,26 @@ app.layout = html.Div([
      dash.dependencies.Input('isRelative', 'value')])
 def update_graph(players, teams, isRelative):
     if isinstance(players, str):
-        text = players
+        text = players        
+    elif players == []:
+        return getEmptyChart()
     else:
-        text = groupedDF.loc[players].reset_index()['PlayerName']
-        
+        text = pd.Series(players).apply(get_player_name)
+                
     if teams == '':
         teams = teamNames
     
     count = groupedDF.loc[players]['Count']
     avg = groupedDF.loc[players]['AveragePoints']
+
+        
     
-    
-    
-    #if isRelative == 'relative':
-        #y = y - teams.xs(player['TeamID'])
+    if isRelative == 'yes':
+        avg = avg - teamAvg
+        yTitle = 'Points per Possession (Relative to Team Average)'
+    else:
+        yTitle = 'Points per Possession'
+
 
     return {
         'data': [go.Scatter(
@@ -98,8 +121,9 @@ def update_graph(players, teams, isRelative):
         )],
         'layout': go.Layout(
             title={'text': 'Average Points on Play after Player ends Possession'},
-            xaxis={'title': 'Count',},
-            yaxis={'title': 'Average Points Relative to Team Average'},
+            xaxis={'title': 'Count'},
+            yaxis={'title': yTitle,
+                   'range': [min(0, min(avg))*1.1, max(0, max(avg))*1.1]},
             hovermode='closest',
             height=600
         ),
@@ -108,17 +132,18 @@ def update_graph(players, teams, isRelative):
 @app.callback(
     dash.dependencies.Output('player-filter', 'options'),
     [dash.dependencies.Input('team-filter', 'value')])
-def update_player_filter(teams):    
-    if teams == '':
+def update_player_filter(teams):
+    if teams == []:
         teams = teamNames
-    elif isinstance(teams, str):
-        teams = [teams]
     
-    players = origDF[['PlayerName', 'TeamName']]
-    players = players[players['TeamName'].isin(teams)]
-    players = sorted(list(set(players['PlayerName'])))
+    players = origDF[['PlayerName', 'TeamName', 'EventPlayerID']]
+    players = players[players['TeamName'].isin(teams)].sort_values('PlayerName')
+    players.drop_duplicates(inplace=True)
     
-    options = [{'label': i, 'value': i} for i in players]
+    options = [{'label': name+' ({})'.format(team), 
+                          'value': id_} for name, team, id_ in zip(players['PlayerName'],
+                                                                   players['TeamName'],
+                                                                   players['EventPlayerID'])]
 
     return  options
 

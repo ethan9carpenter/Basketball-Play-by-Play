@@ -1,9 +1,9 @@
 import json
 
-pointVals = json.load(open('pointVals.json'))
+_pointVals = json.load(open('resources/pointVals.json'))
 
 def _applyPointValues(df):
-    df['PointValue'] = df['EventType'].apply(lambda x: pointVals[x])
+    df['PointValue'] = df['EventType'].apply(lambda x: _pointVals[x])
     df['PointValue'] += df['madeFT']
     
     return df

@@ -1,4 +1,6 @@
 import warnings
+import json
+import pandas as pd
 warnings.filterwarnings('ignore')
 
 def doAndOnes(df):
@@ -41,9 +43,46 @@ def do_assists(df):
         
         
     for col in ['PlayerName', 'EventPlayerID']:
-        df['assist'+col] = df[col].shift(1)
-        df['assist'+col] = df[df['isAssisted']]['assist'+col]
+        assistCol = 'assist'+col
+        
+        df[assistCol] = df[col].shift(1)
+        df[assistCol] = df[df['isAssisted']][assistCol]
+    
+    df.rename({'assistEventPlayerID': 'assistPlayerID'}, inplace=True, axis=1)
+    df['assistPlayerID'] = df['assistPlayerID'].fillna(-1)
 
     df = df[df['EventType'] != 'assist']
     
+    
     return df
+
+def do_assists_(df):
+    """
+    Preconditions
+    -------------
+    -Already did andOnes
+    """    
+    assists = df[df['EventType'] == 'assist']
+    assists = assists[['EventPlayerID', 'PlayerName', 'GameID', 'EventTeamID', 'WPoints', 'LPoints']]
+    assists.rename({'EventPlayerID': 'assistPlayerID',
+                    'PlayerName': 'assistPlayerName'},
+                    axis=1, inplace=True)
+    
+    df = df[df['EventType'] != 'assist']
+    df = pd.merge(df.reset_index(), assists, on=['GameID', 'EventTeamID', 'WPoints', 'LPoints'], how='left')
+    df.set_index('EventID', inplace=True)
+    
+    
+    df['assistPlayerID'] = df['assistPlayerID'].fillna(-1)
+    df['isAssisted'] = df[df['assistPlayerID'] >= 0] 
+    
+    return df
+
+def proper_col_type(df):
+    properTypes = json.load(open('resources/properTypes.json'))
+
+    for col in df:
+        df[col] = df[col].astype(properTypes[col])
+            
+    return df    
+    

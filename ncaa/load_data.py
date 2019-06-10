@@ -71,7 +71,7 @@ def load_clean(year, conn, limit=''):
     else:
         limit = ''
     
-    df = pd.read_sql("""SELECT * FROM poss_{year} {limit}""".format(year=year, limit=limit), 
+    df = pd.read_sql("""SELECT * FROM clean_{year} {limit}""".format(year=year, limit=limit), 
                      conn, index_col='EventID')
     return df
 

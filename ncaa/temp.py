@@ -7,7 +7,7 @@ if __name__ == '__main__':
     import sqlite3 as sql
 
     conn = sql.connect("ncaa_pbp.db")
-    year = 2019
+    year = 2012
     
     df = load_clean(year, conn, limit='')
     df = analysis.prep(df)
@@ -15,17 +15,17 @@ if __name__ == '__main__':
     
     df = df[df['PlayerName'] != 'Team']
     
-    df = df[df['TeamName'].isin(['Duke'])]
+    df = df[df['TeamName'].isin(['Kentucky'])]
     #df = df[df['EventType'].isin(['made3_jump', 'miss3_jump', 'made2_dunk'])]
     
     teams = apply_grouping(df, ['TeamName'])
-    df = apply_grouping(df, ['PlayerName', 'TeamName', 'EventType'])
+    df = apply_grouping(df, ['PlayerName', 'TeamName'])
     
     df['AveragePoints'] -= teams['AveragePoints']
     df.reset_index(level=1, drop=True, inplace=True)
     
     df = df[df['Count'] > 35]
-    df = df.loc[['Reddish Cam', 'Williamson Zion', 'Barrett Rj']]
+    #df = df.loc[['Reddish Cam', 'Williamson Zion', 'Barrett Rj']]
     
     df.sort_values('Count', inplace=True, ascending=False)
     

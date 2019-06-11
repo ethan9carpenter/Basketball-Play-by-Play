@@ -29,6 +29,7 @@ def prep(df, how='o'):
     df = _applyPointValues(df)
     df = _getProperColsAndSbsq(df, how=how)
     df.set_index('EventID', inplace=True)
+    df = df[df['PlayerName'] != 'Team']
     df.sort_index(inplace=True)
 
     return df

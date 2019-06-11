@@ -24,7 +24,7 @@ def _prepare(df):
 
 def _getByLen(df):
     oneBoo = df['ElapsedSeconds'] != df['ElapsedSeconds_1']
-    twoBoo = df['ElapsedSeconds'] == df['ElapsedSeconds_2']
+    twoBoo = df['ElapsedSeconds'] == df['ElapsedSeconds_1']
     threeBoo = df['ElapsedSeconds'] == df['ElapsedSeconds_2']
     
     oneFT = df[oneBoo & ~twoBoo]
@@ -53,6 +53,7 @@ def _getBySeq(oneFT, twoFT, threeFT):
     seqs = {}
     
     for i, df in enumerate([oneFT, twoFT, threeFT]):
+        
         seqs.update(_get_ind_seq(df, i+1))
 
     for name in seqs:
@@ -60,50 +61,36 @@ def _getBySeq(oneFT, twoFT, threeFT):
         data['EventType'] = 'ft'
         data['madeFT'] = int(name[0])
         data['attFT'] = int(name[-1])
-
+    
     return pd.concat(seqs.values(), sort=False)
 
 def singularFT(df):
+    df = df[(df['PlayerName'] == 'Anthony Davis') & (df['EventType'].isin(['made1_free', 'miss1_free']))]
+
     original = df.copy()
     df = _prepare(df)
-    
+
     oneFT, twoFT, threeFT = _getByLen(df)
 
     finalDF = _getBySeq(oneFT, twoFT, threeFT)
     fts = original[original['EventType'].isin(ftEventNames)]
-   
+    
     fts.drop('EventType', inplace=True, axis=1)
     fts = fts.join(finalDF[['EventType', 'madeFT', 'attFT']])
-    
+
     cols = list(original.columns) + ['madeFT', 'attFT']
     fts = fts[cols]
+
     fts = fts[fts.index.isin(finalDF.index)]
-    
+
     original = original[~original['EventType'].isin(ftEventNames)]
     for col in ('madeFT', 'attFT'):
         original[col] = 0
 
     original = original.append(fts)
+    
 
     return original
-
-
-if __name__ == '__main__':
-    conn = sql.connect("ncaa_pbp.db")
-    data = pd.read_sql("""
-                    SELECT
-                        *
-                    From
-                        "2016-2017"
-                    Limit
-                        1000
-                     """, conn, index_col='EventID')
-    result = singularFT(data)
-    #result = result[result['EventType'].isin(ftEventNames)]
-    result['EventType'].loc[result['EventType'].isin(['ft_0_1', 'ft_1_1'])] = 'ft'
-    
-    print(result[['EventType', 'ftCode']])
-    
     
     
     

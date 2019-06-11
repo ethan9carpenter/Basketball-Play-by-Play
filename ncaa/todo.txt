@@ -1,10 +1,12 @@
--Change back EventType to original and then add a column for ftType for and-1s
--Then use groupby to further breakdown by assists
-
--improve/fix _andOnes (FIX THE and8 issue)
-
 -expand analysis so that you can see next opponent play or EventPLayer_sbsq (i.e. Curry 3-->Durant dunk)
 
 -test to make sure that all of the data analysis/points are accurate
 
 -wrapper functions?
+
+-better labels for viz
+-add colors to viz for EventType or PlayerName
+-add mininum count slider
+-add play type filter
+
+-something weird with free throws

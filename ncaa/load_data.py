@@ -43,6 +43,10 @@ def load_data(year, conn, limit='', toAdd=[]):
     addOther = {'name': _add_names,
                 'gameID': _add_game_id,
                 'team': _add_teams}
+    if toAdd == '*':
+        toAdd = addOther.keys()
+    
+    
     
     tableName = '"{}-{}"'.format(year-1, year)
     limit = 'LIMIT ' + str(limit) if isinstance(limit, int) else ''

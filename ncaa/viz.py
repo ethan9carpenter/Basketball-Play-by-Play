@@ -15,18 +15,18 @@ warnings.filterwarnings('ignore')
 conn = sql.connect("ncaa_pbp.db")
 df = load_clean(2012, conn, limit='')
 df = analysis.prep(df)
-df = df[df['PlayerName'] != 'Team']
+
+df = df[['PlayerName', 'EventPlayerID', 'TeamID', 'TeamName', 'EventType', 'PointValue_sbsq']]
+
+groupingCols = ['EventPlayerID', 'TeamID', 'EventType', 'PlayerName', 'TeamName']
+labelCols = ['PlayerName', 'EventType']
 
 teamAvg = apply_grouping(df, ['TeamID'])['AveragePoints']
+df = apply_grouping(df, groupingCols)
 
-groupedDF = apply_grouping(df, ['EventPlayerID', 'TeamID'])
+df.reset_index(inplace=True)
+df = pd.merge(df, teamAvg.reset_index().rename({'AveragePoints': 'TeamAvg'}, axis=1), on='TeamID', how='left')
 
-teamNames = sorted(df['TeamName'].unique())
-
-playerNames = df[['PlayerName', 'EventPlayerID', 'TeamID', 'TeamName']]
-playerNames.drop_duplicates(inplace=True)
-playerNames.sort_values('PlayerName', inplace=True)
-playerNameDict = dict(zip(playerNames['EventPlayerID'], playerNames['PlayerName']))
 
 app = dash.Dash('NCAA Play-by-Play')
 
@@ -36,9 +36,9 @@ app.layout = html.Div([
             dcc.Dropdown(
                 id='player-filter',
                 options=[{'label': name+' ({})'.format(team), 
-                          'value': id_} for name, team, id_ in zip(playerNames['PlayerName'],
-                                                                   playerNames['TeamName'],
-                                                                   playerNames['EventPlayerID'])],
+                          'value': id_} for name, team, id_ in zip(df['PlayerName'],
+                                                                   df['TeamName'],
+                                                                   df['EventPlayerID'])],
                 value=[],
                 multi=True,
                 style={'font-size': 20}
@@ -54,7 +54,7 @@ app.layout = html.Div([
         html.Div([
             dcc.Dropdown(
                 id='team-filter',
-                options=[{'label': i, 'value': i} for i in teamNames],
+                options=[{'label': i, 'value': i} for i in sorted(df['TeamName'].unique())],
                 value=[],
                 multi=True,
                 style={'font-size': 20}
@@ -75,45 +75,43 @@ def getEmptyChart():
                 title={'text': 'Average Points on Play after Player ends Possession'},
                 xaxis={'title': 'Count'},
                 yaxis={'title': 'Points per Possession'},
-                hovermode='closest',
                 height=600
                 )
             }
+
+def get_team_names():
+    return sorted(df['TeamName'].unique())
+
 
 
 @app.callback(
     dash.dependencies.Output('graph', 'figure'),
     [dash.dependencies.Input('player-filter', 'value'), 
-     dash.dependencies.Input('team-filter', 'value'), 
      dash.dependencies.Input('isRelative', 'value')])
-def update_graph(players, teams, isRelative):    
+def update_graph(players, isRelative):    
     if players == []:
         return getEmptyChart()
-                
-    if teams == '':
-        teams = teamNames
+ 
     players = sorted(players)
     
-    data = groupedDF.loc[players]
+    data = df[df['EventPlayerID'].isin(players)]
     
     count = data['Count']
     avg = data['AveragePoints']
-    if isinstance(players, str):
-        text = players
-    else:
-        text = [playerNameDict[id_] for id_ in players]
-                
+    #text = [name + ' ({})'.format(event) for name, event in zip(data['PlayerName'], data['EventType'])]
+    text = [name + ' ({})'.format(event) for name, event in zip(*[data[col] for col in labelCols])]
+    
+    yTitle = 'Points per Possession'
+
     if isRelative == 'yes':
-        avg = avg - teamAvg
-        yTitle = 'Points per Possession (Relative to Team Average)'
-    else:
-        yTitle = 'Points per Possession'
+        avg = avg - data['TeamAvg']
+        yTitle += ' (Relative to Team Average)'
 
 
     return {
         'data': [go.Scatter(
             x=count,
-            y=avg,
+            y=avg.values,
             text=text,
             mode='markers',
             marker = {'size': 25}
@@ -133,10 +131,10 @@ def update_graph(players, teams, isRelative):
     [dash.dependencies.Input('team-filter', 'value')])
 def update_player_filter(teams):
     if teams == []:
-        teams = teamNames
+        teams = get_team_names()
     
-    players = playerNames[playerNames['TeamName'].isin(teams)]
-    players.sort_values('PlayerName')
+    players = df[df['TeamName'].isin(teams)][['PlayerName', 'TeamName', 'EventPlayerID']]
+    players.sort_values('PlayerName', inplace=True)
     players.drop_duplicates(inplace=True)
     
     options = [{'label': name+' ({})'.format(team), 

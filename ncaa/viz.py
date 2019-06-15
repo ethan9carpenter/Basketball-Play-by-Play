@@ -2,6 +2,8 @@ import dash
 #https://dash.plot.ly/interactive-graphing
 import dash_core_components as dcc
 import dash_html_components as html
+import dash_daq as daq
+from dash.dependencies import Input, Output
 import plotly.graph_objs as go
 from ncaa import analysis
 from ncaa.load_data import load_clean
@@ -9,17 +11,19 @@ from ncaa.analysis.analyze import apply_grouping
 import pandas as pd
 import sqlite3 as sql
 import warnings
+from ncaa.viz_helpers import getEmptyChart, build_scatter
 
 warnings.filterwarnings('ignore')
 
 conn = sql.connect("ncaa_pbp.db")
-df = load_clean(2012, conn, limit='')
+df = load_clean(2016, conn, limit=1000)
 df = analysis.prep(df)
 
 df = df[['PlayerName', 'EventPlayerID', 'TeamID', 'TeamName', 'EventType', 'PointValue_sbsq']]
 
-groupingCols = ['EventPlayerID', 'TeamID', 'EventType', 'PlayerName', 'TeamName']
-labelCols = ['PlayerName', 'EventType']
+labelCols = ['PlayerName']#, 'EventType']
+groupingCols = ['EventPlayerID', 'TeamID', 'TeamName'] + labelCols
+
 
 teamAvg = apply_grouping(df, ['TeamID'])['AveragePoints']
 df = apply_grouping(df, groupingCols)
@@ -43,11 +47,9 @@ app.layout = html.Div([
                 multi=True,
                 style={'font-size': 20}
             ),
-            dcc.RadioItems(
-                id='isRelative',
-                options=[{'label': 'Relative to Team', 'value': 'yes'},
-                         {'label': 'Total', 'value': 'no'}],
-                value='yes',
+            daq.BooleanSwitch(id='isRelative',
+                on=True,
+                label='Display Relative Values'
             )
         ],
         style={'display': 'inline-block', 'width': '50%', 'float': '50%'}),
@@ -70,14 +72,7 @@ app.layout = html.Div([
 ])
 
 
-def getEmptyChart():
-    return {'layout': go.Layout(
-                title={'text': 'Average Points on Play after Player ends Possession'},
-                xaxis={'title': 'Count'},
-                yaxis={'title': 'Points per Possession'},
-                height=600
-                )
-            }
+
 
 def get_team_names():
     return sorted(df['TeamName'].unique())
@@ -85,9 +80,9 @@ def get_team_names():
 
 
 @app.callback(
-    dash.dependencies.Output('graph', 'figure'),
-    [dash.dependencies.Input('player-filter', 'value'), 
-     dash.dependencies.Input('isRelative', 'value')])
+    Output('graph', 'figure'),
+    [Input('player-filter', 'value'), 
+     Input('isRelative', 'on')])
 def update_graph(players, isRelative):    
     if players == []:
         return getEmptyChart()
@@ -99,11 +94,11 @@ def update_graph(players, isRelative):
     count = data['Count']
     avg = data['AveragePoints']
     #text = [name + ' ({})'.format(event) for name, event in zip(data['PlayerName'], data['EventType'])]
-    text = [name + ' ({})'.format(event) for name, event in zip(*[data[col] for col in labelCols])]
+    text = ['-'.join(info) for info in zip(*[data[col] for col in labelCols])]
     
     yTitle = 'Points per Possession'
 
-    if isRelative == 'yes':
+    if isRelative:
         avg = avg - data['TeamAvg']
         yTitle += ' (Relative to Team Average)'
 

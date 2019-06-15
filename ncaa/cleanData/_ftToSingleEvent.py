@@ -65,8 +65,6 @@ def _getBySeq(oneFT, twoFT, threeFT):
     return pd.concat(seqs.values(), sort=False)
 
 def singularFT(df):
-    df = df[(df['PlayerName'] == 'Anthony Davis') & (df['EventType'].isin(['made1_free', 'miss1_free']))]
-
     original = df.copy()
     df = _prepare(df)
 

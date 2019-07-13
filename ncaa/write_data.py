@@ -32,11 +32,15 @@ def write_prep_off_poss(conn, yearEnd, newTableName=None, reindex=False, from_cl
 if __name__ == '__main__':
     import sqlite3
     import cProfile
+    """
     for year in range(2010, 2019+1):
         write_prep_off_poss(sqlite3.connect('ncaa_pbp.db'), year, if_exists='replace')
         print(year)
-"""
-    cProfile.run('''
-write_clean_off_poss(sqlite3.connect('ncaa_pbp.db'), 2010, if_exists='replace')
-''', sort='cumtime')
-"""
+        """
+
+    year = 2016
+    conn = sqlite3.connect("ncaa_pbp.db")
+    df = load_data(year, conn, 10, '*')
+    cProfile.run("""
+df = cleanData(df)
+    """, sort='cumtime')

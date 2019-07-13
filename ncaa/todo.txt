@@ -7,6 +7,8 @@
 -add mininum count slider
 -add play type filter
 
--add a table/graph switch
-
 -viz_helpers
+
+-add team conferences
+
+-cleaning is slow af

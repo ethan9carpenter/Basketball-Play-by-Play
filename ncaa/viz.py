@@ -2,26 +2,25 @@ import dash
 #https://dash.plot.ly/interactive-graphing
 import dash_core_components as dcc
 import dash_html_components as html
-import dash_daq as daq
+from dash_daq import BooleanSwitch
 from dash.dependencies import Input, Output
-import plotly.graph_objs as go
 from ncaa import analysis
 from ncaa.load_data import load_clean
 from ncaa.analysis.analyze import apply_grouping
 import pandas as pd
 import sqlite3 as sql
 import warnings
-from ncaa.viz_helpers import getEmptyChart, build_scatter
+from ncaa.viz_helpers import build_scatter, build_table, prepare_data_for_viz
 
 warnings.filterwarnings('ignore')
 
 conn = sql.connect("ncaa_pbp.db")
-df = load_clean(2016, conn, limit=1000)
+df = load_clean(2019, conn, limit=None)
 df = analysis.prep(df)
 
 df = df[['PlayerName', 'EventPlayerID', 'TeamID', 'TeamName', 'EventType', 'PointValue_sbsq']]
 
-labelCols = ['PlayerName']#, 'EventType']
+labelCols = ['PlayerName']
 groupingCols = ['EventPlayerID', 'TeamID', 'TeamName'] + labelCols
 
 
@@ -47,9 +46,17 @@ app.layout = html.Div([
                 multi=True,
                 style={'font-size': 20}
             ),
-            daq.BooleanSwitch(id='isRelative',
+            BooleanSwitch(
+                id='isRelative',
                 on=True,
-                label='Display Relative Values'
+                label='Display Relative Values',
+                style={'float': 'left'}
+            ),
+            BooleanSwitch(
+                id='isChart',
+                on=True,
+                label='Chart',
+                style={'float': 'left'}
             )
         ],
         style={'display': 'inline-block', 'width': '50%', 'float': '50%'}),
@@ -64,69 +71,35 @@ app.layout = html.Div([
         ],
         style={'display': 'inline-block', 'width': '50%', 'float': 'right'}),
     ]),
-    html.Div([
-        dcc.Graph(
-            id='graph',
-        )
-    ]),
+    html.Div(id='display'),
 ])
 
 
-
-
-def get_team_names():
-    return sorted(df['TeamName'].unique())
-
-
-
 @app.callback(
-    Output('graph', 'figure'),
+    Output('display', 'children'),
     [Input('player-filter', 'value'), 
-     Input('isRelative', 'on')])
-def update_graph(players, isRelative):    
-    if players == []:
-        return getEmptyChart()
- 
-    players = sorted(players)
+     Input('isRelative', 'on'),
+     Input('isChart', 'on'),
+     Input('team-filter', 'value')])
+def update_graph(players, isRelative, isChart, teams):
+    #if players == []:
+        #players = list(df['PlayerName'])
     
-    data = df[df['EventPlayerID'].isin(players)]
+    data = prepare_data_for_viz(df.copy(), players, isRelative, labelCols, teams)
     
-    count = data['Count']
-    avg = data['AveragePoints']
-    #text = [name + ' ({})'.format(event) for name, event in zip(data['PlayerName'], data['EventType'])]
-    text = ['-'.join(info) for info in zip(*[data[col] for col in labelCols])]
+    if isChart:
+        return [build_scatter(data, isRelative, labelCols)]
+    else:
+        return [build_table(data, labelCols)]
     
-    yTitle = 'Points per Possession'
-
-    if isRelative:
-        avg = avg - data['TeamAvg']
-        yTitle += ' (Relative to Team Average)'
-
-
-    return {
-        'data': [go.Scatter(
-            x=count,
-            y=avg.values,
-            text=text,
-            mode='markers',
-            marker = {'size': 25}
-        )],
-        'layout': go.Layout(
-            title={'text': 'Average Points on Play after Player ends Possession'},
-            xaxis={'title': 'Count'},
-            yaxis={'title': yTitle,
-                   'range': [min(0, min(avg))*1.1, max(0, max(avg))*1.1]},
-            hovermode='closest',
-            height=600
-        ),
-    }
+    
     
 @app.callback(
-    dash.dependencies.Output('player-filter', 'options'),
-    [dash.dependencies.Input('team-filter', 'value')])
+    Output('player-filter', 'options'),
+    [Input('team-filter', 'value')])
 def update_player_filter(teams):
     if teams == []:
-        teams = get_team_names()
+        teams = sorted(df['TeamName'].unique())
     
     players = df[df['TeamName'].isin(teams)][['PlayerName', 'TeamName', 'EventPlayerID']]
     players.sort_values('PlayerName', inplace=True)
@@ -138,6 +111,15 @@ def update_player_filter(teams):
                                                                    players['EventPlayerID'])]
 
     return  options
+
+@app.callback(
+    Output('isChart', 'label'),
+    [Input('isChart', 'on')])
+def is_chart_label_update(isChart):
+    if isChart:
+        return "Scatter Plot"
+    else:
+        return  "Table"
 
 
 if __name__ == '__main__':

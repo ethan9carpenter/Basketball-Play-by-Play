@@ -30,9 +30,11 @@ def _add_names(df, conn):
 
 def _add_teams(df, conn):
     names = pd.read_sql("""Select 
-                               TeamID, TeamName
+                               Teams.TeamID, Teams.TeamName, TeamConferences.ConfAbbrev
                            FROM 
                                Teams
+                           LEFT JOIN
+                               TeamConferences ON Teams.TeamID = TeamConferences.TeamID 
                         """, conn)
 
     df = pd.merge(df, names, how='left', left_on='EventTeamID', right_on='TeamID')

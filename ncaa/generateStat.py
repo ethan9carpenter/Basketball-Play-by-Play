@@ -4,11 +4,12 @@ from ncaa.analysis.analyze import apply_grouping
 import sqlite3 as sql
 import warnings
 import pandas as pd
+import numpy as np
 
 warnings.filterwarnings('ignore')
-power5 = ['acc', 'big_ten', 'big_twelve', 'sec', 'pac_twelve']
+power5 = ['acc']
 
-year = 2012
+year = 2016
 conn = sql.connect("ncaa_pbp.db")
 #df = load_data(year, conn, 100, '*')
 #df = cleanData(df)
@@ -21,21 +22,22 @@ df = pd.merge(df, conferences, 'left', 'TeamID', suffixes=['', '_'])
 df = df[['PlayerName', 'EventPlayerID', 'TeamID', 'TeamName', 'EventType', 'PointValue_sbsq', 'ConfAbbrev']]
 df = df[df['ConfAbbrev'].isin(power5)]
 
-labelCols = ['PlayerName', 'EventType']
-groupingCols = ['EventPlayerID', 'TeamID', 'TeamName', 'ConfAbbrev'] + labelCols
-teamAvg = apply_grouping(df, ['TeamID'])['AveragePoints']
+labelCols = []
+groupingCols = ['PlayerName', 'EventPlayerID', 'TeamID', 'TeamName', 'ConfAbbrev'] + labelCols
+teamAvg = apply_grouping(df, ['TeamID']+labelCols)['AveragePoints']
 playerData = apply_grouping(df, groupingCols)
+
 df = None
 
 playerData.reset_index(inplace=True)
-playerData.set_index(['TeamID']+labelCols, inplace=True)
+playerData.set_index(['PlayerName', 'TeamID']+labelCols, inplace=True)
 playerData['AveragePoints'] -= teamAvg
-playerData.reset_index(inplace=True, level=0)
+playerData.reset_index(inplace=True, level='TeamID')
 playerData = playerData[['TeamName', 'ConfAbbrev', 'AveragePoints', 'Count']]
 playerData['Total'] = playerData['AveragePoints'] * playerData['Count']
 playerData = playerData.groupby(['PlayerName', 'TeamName', 'ConfAbbrev']).sum()
 playerData['AveragePoints'] = playerData['Total'] / playerData['Count']
-#playerData = playerData[playerData['Count'] > 450]
-playerData['Rating'] = playerData['Total'] * playerData['AveragePoints']
+playerData = playerData[playerData['Count'] > 400]
+#playerData['Rating'] = playerData['Total'] * np.abs(playerData['AveragePoints'])
 
-print(playerData.sort_values('Rating', ascending=False).reset_index(level=2, drop=True).drop('Total', axis=1))
+print(playerData.sort_values('AveragePoints', ascending=False).reset_index(level='ConfAbbrev', drop=True).reset_index(level='TeamName'))

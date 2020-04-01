@@ -3,7 +3,7 @@ import json
 import pandas as pd
 warnings.filterwarnings('ignore')
 
-def doAndOnes(df):
+def _doAndOnes(df):
     """
     Preconditions
     -------------
@@ -31,7 +31,7 @@ def doAndOnes(df):
     return df
 
 
-def do_assists(df):
+def _do_assists(df):
     """
     Preconditions
     -------------
@@ -56,7 +56,7 @@ def do_assists(df):
     
     return df
 
-def do_assists_(df):
+def _do_assists_(df):
     """
     Preconditions
     -------------
@@ -78,7 +78,7 @@ def do_assists_(df):
     
     return df
 
-def proper_col_type(df):
+def _proper_col_type(df):
     properTypes = json.load(open('resources/properTypes.json'))
 
     for col in df:

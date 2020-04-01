@@ -14,11 +14,19 @@ from ncaa.viz_helpers import build_scatter, build_table, prepare_data_for_viz
 
 warnings.filterwarnings('ignore')
 
+power5 = ['acc', 'pac_twelve', 'big_ten', 'big_twelve', 'sec']
+year = 2014
+
 conn = sql.connect("ncaa_pbp.db")
-df = load_clean(2019, conn, limit=None)
+df = load_clean(year, conn, limit=None)
 df = analysis.prep(df)
 
-df = df[['PlayerName', 'EventPlayerID', 'TeamID', 'TeamName', 'EventType', 'PointValue_sbsq']]
+conferences = pd.read_sql("SELECT ConfAbbrev, TeamID FROM TeamConferences WHERE Season ={year}".format(year=year), conn)
+
+df = pd.merge(df, conferences, 'left', 'TeamID', suffixes=['', '_'])
+df = df[['PlayerName', 'EventPlayerID', 'TeamID', 'TeamName', 'EventType', 'PointValue_sbsq', 'ConfAbbrev']]
+df = df[df['ConfAbbrev'].isin(power5)]
+
 
 labelCols = ['PlayerName']
 groupingCols = ['EventPlayerID', 'TeamID', 'TeamName'] + labelCols
@@ -26,6 +34,7 @@ groupingCols = ['EventPlayerID', 'TeamID', 'TeamName'] + labelCols
 
 teamAvg = apply_grouping(df, ['TeamID'])['AveragePoints']
 df = apply_grouping(df, groupingCols)
+df = df[df['Count'] > 400]
 
 df.reset_index(inplace=True)
 df = pd.merge(df, teamAvg.reset_index().rename({'AveragePoints': 'TeamAvg'}, axis=1), on='TeamID', how='left')

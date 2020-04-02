@@ -1,18 +1,23 @@
 import dash_core_components as dcc
 import plotly.graph_objs as go
 import dash_table
+from dash_daq import BooleanSwitch
 
-def build_scatter(df, isRelative, labelCols):
+
+def build_scatter(df, isRelative, labelCols, colorCol=None):
     count = df['Count']
     avg = df['AveragePoints']
 
     text = ['-'.join(info) for info in zip(*[df[col] for col in labelCols])]
     
-    yTitle = 'Points per Possession'
-
-    if isRelative:
-        yTitle += ' (Relative to Team Average)'
-
+    yTitle = 'Points per Possession' + (' (Relative to Team Average)' if isRelative else '')
+    
+    colorOptions = ['red', 'orange', 'yellow', 'green', 'purple', 'blue', 'black', 'grey', 'gold', 'silver']
+    
+    
+    if colorCol is not None:
+        colorMap = dict(zip(set(df[colorCol]), colorOptions))
+        colors = df[colorCol].map(colorMap)
 
     return dcc.Graph(
             id='graph',
@@ -22,7 +27,8 @@ def build_scatter(df, isRelative, labelCols):
                     y=avg.values,
                     text=text,
                     mode='markers',
-                    marker = {'size': 25}
+                    marker = {'size': 25,
+                              'color': colors}
                 )],
                 'layout': go.Layout(
                     title={'text': 'Average Points on Play after Player ends Possession'},
@@ -37,16 +43,14 @@ def build_scatter(df, isRelative, labelCols):
 def build_table(df, labelCols):
     df = df[labelCols+['TeamName', 'AveragePoints', 'Count']]
     
-    
     df.sort_values('AveragePoints', inplace=True, ascending=False)
     df.reset_index(inplace=True, drop=True)
-    df.reset_index(inplace=True)
-    df['index'] += 1
+    df['Rank'] = df.index + 1
+    
     df.rename({'PlayerName': 'Name',
                'TeamName': 'Team',
-               'index': 'Rank'
                }, axis=1, inplace=True)
-    
+    df = df.reindex(columns=['Rank'] + list(df.columns[:-1]))
     
     return dash_table.DataTable(
                 id='table',
@@ -55,7 +59,7 @@ def build_table(df, labelCols):
                 sorting=True
             )
     
-def prepare_data_for_viz(df, players, isRelative, labelCols, teams):
+def prepare_data_for_viz(df, players, isRelative, teams, events):
     players = sorted(players)
     
     if players == [] and teams == []:
@@ -64,6 +68,9 @@ def prepare_data_for_viz(df, players, isRelative, labelCols, teams):
         df = df[df['TeamName'].isin(teams)]
     else:
         df = df[df['EventPlayerID'].isin(players)]
+    
+    if events != []:
+        df = df[df['EventType'].isin(events)]
         
 
     if isRelative:

@@ -12,10 +12,8 @@ def _doAndOnes(df):
     df.reset_index(inplace=True)
     df.set_index(['ElapsedSeconds', 'EventTeamID', 'GameID', 'EventPlayerID'], inplace=True)
     
-    fts = df[df['attFT'] == 1]
+    fts = df[df['attFT'] == 1]['madeFT', 'attFT']
     df = df[df['attFT'] != 1]
-    
-    fts = fts[['madeFT', 'attFT']]
     
     df = df.join(fts, rsuffix='_')
     df.reset_index(inplace=True)

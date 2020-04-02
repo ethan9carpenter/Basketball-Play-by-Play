@@ -5,10 +5,9 @@
 -better labels for viz
 -add colors to viz for EventType or PlayerName
 -add mininum count slider
--add play type filter
 
 -viz_helpers
 
--add team conferences
-
 -cleaning is slow af
+
+-it seems like missed threes lead to better possessions than made

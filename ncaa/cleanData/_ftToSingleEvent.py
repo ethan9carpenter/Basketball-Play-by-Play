@@ -1,5 +1,4 @@
 import pandas as pd
-import sqlite3 as sql
 
 ftEventNames = ('made1_free', 'miss1_free')
 
@@ -18,7 +17,7 @@ def _prepare(df):
     df.drop(['ElapsedSeconds_-1', 'EventType_-1'], axis=1, inplace=True)
     
     for col in ('EventType', 'EventType_1', 'EventType_2'):
-        df[col] = df[col] == 'made1_free'
+        df[col] = (df[col] == 'made1_free')
     
     return df
 
@@ -53,7 +52,6 @@ def _getBySeq(oneFT, twoFT, threeFT):
     seqs = {}
     
     for i, df in enumerate([oneFT, twoFT, threeFT]):
-        
         seqs.update(_get_ind_seq(df, i+1))
 
     for name in seqs:
